@@ -1,0 +1,131 @@
+var spec = {
+    "backend": [
+    {
+        "name": "seattle",
+        "type": "alasql",
+        "data": "seattle-mod.csv",
+        "schema":{
+            "date": "FLOAT",
+            "precipitation": "FLOAT",
+            "temp_max": "FLOAT",
+            "temp_min": "FLOAT",
+            "wind": "FLOAT",
+            "weather": "TEXT"
+        }
+    },
+    {
+        "name": "dt",
+        "type": "jsdifftree",
+        "backend": "seattle",
+        "difftree": "specs/jsdifftree.json"
+    },
+    {
+      "name": "predt",
+      "type": "delay",
+      "delay": (() => {
+        let i = 0;
+        return function f() {
+          i++;
+          return (i-1) * 50;
+        };
+      })(),
+      "backend": "dt"
+     }
+],
+"views": [
+    {
+        "type": "Chart",
+        "mark": "Bar",
+        "vid": 0,
+        "width": 200,
+        "height": 150,
+        "mapping": {
+            "x": "date",
+            "y": "c"
+        },
+        "data":{
+            "backend":"seattle",
+            "query": "SELECT date, avg(precipitation) as c FROM seattle group by date"
+        }
+    },
+    {
+        "type": "Chart",
+        "mark": "Point",
+        "vid": 1,
+        "width": 200,
+        "height": 150,
+        "mapping": {
+            "x": "date",
+            "y": "c"
+        },
+        "data":{
+            "backend":"seattle",
+            "query": "SELECT date, precipitation as c FROM seattle"
+        }
+    },
+    {
+        "type": "Chart",
+        "vid": 2,
+        "mark": "Line",
+        "width": 200,
+        "height": 150,
+        "mapping": {
+            "x": "wind",
+            "y": "avp"
+        },
+        "data":{
+            "backend":"predt",
+            "params": {
+                0: 100,
+            1: 1000
+            }
+        }
+    },
+    {
+        "type": "Chart",
+        "mark": "Area",
+        "vid": 3,
+        "width": 200,
+        "height": 150,
+        "data":{
+            "backend":"seattle",
+            "query": "SELECT temp_min as x, temp_max as y FROM seattle"
+        }
+
+    }
+],
+"wroot": {
+  "type": "VLayout",
+  "width": 500,
+  "height": 1000,
+  "children": [
+    { "ref": 0 },
+    { "ref": 1 },
+    { "ref": 2 },
+    { "ref": 3 }
+    ]
+},
+"interaction": [
+    {
+        "interaction_id": 1,
+        "source": 1,
+        "target": 2,
+        "m": {
+            "type": "BRUSH",
+            "when": "ON_DRAG",
+            "encodings": ["x"],
+            "space": "SPATIAL"
+        },
+        h: {
+          0: "xMin",
+          1: "xMax"
+      },
+      t: {
+        schema: [
+          { name: 0, type: "num"},
+          { name: 1, type: "num"}
+        ]
+      }
+    }
+]
+}
